@@ -24,7 +24,7 @@ USE MOD_Precision
     REAL(R8) ::          wfc          !
     REAL(R8) ::          fsno
     REAL(R8) ::          rss                           ! soil surface resistance(m/s)
-        
+    REAL(R8) ::          dsl    
         nl_soil         = 10
         forc_rhoair     = 1.29_r8
         hksati          = 1.25e-6_r8 
@@ -34,13 +34,13 @@ USE MOD_Precision
         dz_soisno       = 1.75e-2_r8
         t_soisno        = 297.15_r8
         qg              = 1.5e-2_r8
-        wfc             = 0.87*porsl
+        wfc             = 0.31
         fsno            = 0.
         do i = 1,1000
            wliq_soisno = (i/1000.)*porsl*1000.*dz_soisno
            wice_soisno = 1.1e-4_r8  
            call soilsurface_resistance (nl_soil,forc_rhoair,hksati,porsl,bsw,psi0,&
-                  dz_soisno,t_soisno,wliq_soisno,wice_soisno,wfc,fsno,qg,rss)
+                  dz_soisno,t_soisno,wliq_soisno,wice_soisno,wfc,fsno,qg,dsl,rss)
           write(*,*) rss
         enddo  
 end program main

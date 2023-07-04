@@ -1,5 +1,12 @@
-!#include <define.h>
-
+#undef RSS_SL14
+#undef RSS_SZ09
+#define RSS_TR13
+#undef Soilbeta
+#undef BCC
+#undef P_WLR
+#undef MI_WLR
+#undef MA_WLR
+#define M_Q
 MODULE MOD_Soilsurface_Resistance
   ! -----------------------------------------------------------------------
   ! !DESCRIPTION:
@@ -24,7 +31,7 @@ CONTAINS
 !-----------------------------------------------------------------------
 
  SUBROUTINE soilsurface_resistance (nl_soil,forc_rhoair,hksati,porsl,bsw,psi0,&
-                   dz_soisno,t_soisno,wliq_soisno,wice_soisno,wfc,fsno,qg,rss)
+                   dz_soisno,t_soisno,wliq_soisno,wice_soisno,wfc,fsno,qg,dsl,rss)
                    
   !=======================================================================
   ! !DESCRIPTION:
@@ -58,8 +65,8 @@ CONTAINS
         fsno            , &!   
         forc_rhoair                   ! density air [kg/m**3]
   REAL(r8), intent(out) :: &
-        rss             ! soil surface resistance(m/s)
-     
+        rss             , &! soil surface resistance(m/s)
+        dsl                ! dry soil layer thickness
 
                    
 !-----------------------Local Variables------------------------------
@@ -74,11 +81,12 @@ CONTAINS
        d0,               & ! molecular diffusivity of water vapor in air (m2/s)
        eps,              & ! air filled pore space
        dg,               & ! d0*(tortuosity of the vapor flow paths through the soil matrix)
-       dsl,              & ! soil dry surface layer thickness
+       !dsl,              & ! soil dry surface layer thickness
        dw,               & ! aqueous diffusivity (m2/s)
        hk,               & ! hydraulic conductivity
        d1,               & !
        beta,             & ! 
+       tao,              & !
        B                   ! liquid water density / water vapor density
        
 !-----------------------End Variables list---------------------------
@@ -99,44 +107,64 @@ CONTAINS
   aird        = porsl*(psi0/-1.e7_r8)**(1./bsw)
   d0          = 2.12e-5*(t_soisno/273.15)**1.75 ![Bitelli et al., JH, 08]
   eps         = porsl - aird
-  dg          = d0*eps*eps*(eps/porsl)**(3._r8/max(3._r8,bsw))
+#ifdef BCC
+  tao         = eps*eps*(eps/porsl)**(3._r8/max(3._r8,bsw))
+#endif  
+
+#ifdef P_WLR
+  tao         = 0.66*eps*(eps/porsl)
+#endif
+  
+#ifdef MI_WLR
+  tao         = eps**(4._r8/3._r8)*(eps/porsl)
+#endif
+
+#ifdef MA_WLR
+  tao         = eps**(3./2.)*(eps/porsl)
+#endif
+
+#ifdef M_Q
+  tao         = eps**(4._r8/3._r8)*(eps/porsl)**(2.0_r8)
+#endif
+
+  dg          = d0*tao
   dw          = -hk*bsw*smp_node/vol_liq
 
 
   ! calculate dsl by SL14
-!#ifdef RSS_SL14
-!  dsl         = dz_soisno*max(0.001_r8,(0.8*eff_porosity - vol_liq)) &
-!  /max(0.001_r8,(porsl- aird)) ! SL14
+#ifdef RSS_SL14
+  dsl         = dz_soisno*max(0.001_r8,(0.8*eff_porosity - vol_liq)) &
+  /max(0.001_r8,(0.8*porsl- aird)) ! SL14
 
-!  dsl         = max(dsl,0._r8)
-!  dsl         = min(dsl,0.2_r8)
-!  rss         = dsl/dg + 20._r8
-!#endif
+  dsl         = max(dsl,0._r8)
+  dsl         = min(dsl,0.2_r8)
+  rss         = dsl/dg + 20._r8
+#endif
   
-!#ifdef RSS_SZ09
-!  ! calculate dsl by SZ09
-!  dsl         = dz_soisno*((exp((1._r8 - vol_liq/eff_porosity)**5) - 1._r8)/ (2.71828 - 1._r8))  ! SZ09
-!  dsl         = min(dsl,0.2_r8)
-!  dsl         = max(dsl,0._r8)
+#ifdef RSS_SZ09
+  ! calculate dsl by SZ09
+  dsl         = dz_soisno*((exp((1._r8 - vol_liq/eff_porosity)**5) - 1._r8)/ (2.71828 - 1._r8))  ! SZ09
+  dsl         = min(dsl,0.2_r8)
+  dsl         = max(dsl,0._r8)
 
-!  rss         = dsl/dg
+  rss         = dsl/dg
 
-!#endif
+#endif
 
-!#ifdef RSS_TR13
+#ifdef RSS_TR13
   ! calculate dsl by TR13 
-!  B           = 1000._r8/(qg*forc_rhoair)
-!  d1          = (B*vol_liq*dw + eps*dg)/(B*vol_liq+eps)
-!  dsl         = dz_soisno*(1._r8/(2._r8*(B*vol_liq+eps)))
-!  dsl         = min(dsl,0.2_r8)
-!  dsl         = max(dsl,0._r8)
-!  rss         = dsl/d1
+  B           = 1000._r8/(qg*forc_rhoair)
+  d1          = (B*vol_liq*dw + eps*dg)/(B*vol_liq+eps)
+  dsl         = dz_soisno*(1._r8/(2._r8*(B*vol_liq+eps)))
+  dsl         = min(dsl,0.2_r8)
+  dsl         = max(dsl,0._r8)
+  rss         = dsl/d1
   
-!#endif
-!#
+#endif
 
-!#if def Soilbeta
-  !wx   = (wliq_soisno(1)/1000.+wice_soisno/917.)/dz_soisno
+
+#ifdef Soilbeta
+  wx   = (wliq_soisno(1)/1000.+wice_soisno/917.)/dz_soisno
   !fac  = min(1._r8, wx/porsl)
   !fac  = max( fac, 0.01_r8 )
                 !! Lee and Pielke 1992 beta, added by K.Sakaguchi
@@ -146,9 +174,10 @@ CONTAINS
   ELSE   !when water content of ths top layer is more than that at F.C.
   beta    = 1._r8
   ENDIF
-
+  ! raw = 50 
   rss         = 50._r8 * (1._r8/beta-1._r8)
-!#endif
+#endif
+
   rss         = min(1.e6_r8,rss)
 
 end Subroutine soilsurface_resistance
