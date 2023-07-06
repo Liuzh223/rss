@@ -30,15 +30,16 @@ USE MOD_Precision
         hksati          = 1.25e-6_r8 
         porsl           = 0.45_r8
         bsw             = 7.12_r8
-        psi0            = -1.21e-3_r8 
-        dz_soisno       = 1.75e-2_r8
+        psi0            = -1.21e-2_r8 
+        dz_soisno       = 5.0e-2_r8
         t_soisno        = 297.15_r8
         qg              = 1.5e-2_r8
         wfc             = 0.31
         fsno            = 0.
         do i = 1,1000
-           wliq_soisno = (i/1000.)*porsl*1000.*dz_soisno
-           wice_soisno = 1.1e-4_r8  
+           wliq_soisno = (i/1000._r8)*porsl*1000.*dz_soisno
+           wice_soisno = 1.1e-4_r8 
+          ! qg          = (i/1000.)*4.0e-2_r8 
            call soilsurface_resistance (nl_soil,forc_rhoair,hksati,porsl,bsw,psi0,&
                   dz_soisno,t_soisno,wliq_soisno,wice_soisno,wfc,fsno,qg,dsl,rss)
           write(*,*) rss

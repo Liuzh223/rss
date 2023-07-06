@@ -2,11 +2,13 @@
 #undef RSS_SZ09
 #define RSS_TR13
 #undef Soilbeta
-#undef BCC
+#define BCC
 #undef P_WLR
 #undef MI_WLR
 #undef MA_WLR
-#define M_Q
+#undef M_Q
+#undef POE
+
 MODULE MOD_Soilsurface_Resistance
   ! -----------------------------------------------------------------------
   ! !DESCRIPTION:
@@ -87,6 +89,7 @@ CONTAINS
        d1,               & !
        beta,             & ! 
        tao,              & !
+       eps100,            & !
        B                   ! liquid water density / water vapor density
        
 !-----------------------End Variables list---------------------------
@@ -127,14 +130,19 @@ CONTAINS
   tao         = eps**(4._r8/3._r8)*(eps/porsl)**(2.0_r8)
 #endif
 
+#ifdef POE
+  eps100      = porsl - porsl*(psi0/-1.)**(1./bsw)
+  tao         = porsl*porsl*(eps/porsl)**(2.+log(eps100**0.25_r8)/log(eps100/porsl))
+#endif 
+
   dg          = d0*tao
   dw          = -hk*bsw*smp_node/vol_liq
 
 
   ! calculate dsl by SL14
 #ifdef RSS_SL14
-  dsl         = dz_soisno*max(0.001_r8,(0.8*eff_porosity - vol_liq)) &
-  /max(0.001_r8,(0.8*porsl- aird)) ! SL14
+  dsl         = dz_soisno*max(1.e-6_r8,(0.8*eff_porosity - vol_liq)) &
+  /max(1.e-6_r8,(0.8*porsl- aird)) ! SL14
 
   dsl         = max(dsl,0._r8)
   dsl         = min(dsl,0.2_r8)
@@ -164,7 +172,7 @@ CONTAINS
 
 
 #ifdef Soilbeta
-  wx   = (wliq_soisno(1)/1000.+wice_soisno/917.)/dz_soisno
+  !wx   = (wliq_soisno/1000.+wice_soisno/917.)/dz_soisno
   !fac  = min(1._r8, wx/porsl)
   !fac  = max( fac, 0.01_r8 )
                 !! Lee and Pielke 1992 beta, added by K.Sakaguchi
