@@ -2,22 +2,23 @@
 #undef RSS_SZ09
 #define RSS_TR13
 #undef Soilbeta
-#undef BCC
+#define BCC
 #undef P_WLR
 #undef MI_WLR
 #undef MA_WLR
-#define M_Q
+#undef M_Q
+#undef POE
 
-MODULE MOD_SoilSurfaceResistance
-  ! -----------------------------------------------------------------------
-  ! !DESCRIPTION:
-  ! Calculate the soil surface resistance by using three parameterization schemes
-  !
-  ! ORIGINAL:
-  ! Zhuo Liu, June, 2023
-  !
-  ! -----------------------------------------------------------------------
-  ! !USE
+MODULE MOD_Soilsurface_Resistance
+   ! -----------------------------------------------------------------------
+   ! !DESCRIPTION:
+   ! Calculate the soil surface resistance by using three parameterization schemes
+   !
+   ! ORIGINAL:
+   ! Zhuo Liu, June, 2023
+   !
+   ! -----------------------------------------------------------------------
+   ! !USE
 
    USE MOD_Precision
    !USE MOD_Vars_Global
@@ -72,7 +73,7 @@ CONTAINS
 
 !-----------------------Local Variables------------------------------
 
-   real(r8) :: &
+   REAL(r8) :: &
         vol_liq,          & ! vol_liq
         smp_node,         & ! matrix potential
         eff_porosity,     & ! effective porosity = porosity - vol_ice
@@ -85,6 +86,7 @@ CONTAINS
         d1,               & !
         beta,             & !
         tao,              & !
+        eps100,           & !
         B                   ! liquid water density / water vapor density
 
 !-----------------------End Variables list---------------------------
@@ -124,6 +126,11 @@ CONTAINS
    tao         = eps**(4._r8/3._r8)*(eps/porsl)**(2.0_r8)
 #endif
 
+#ifdef POE
+   eps100      = porsl - porsl*(psi0/-1.)**(1./bsw)
+   tao         = porsl*porsl*(eps/porsl)**(2.+log(eps100**0.25_r8)/log(eps100/porsl))
+#endif
+
    dg          = d0*tao
    dw          = -hk*bsw*smp_node/vol_liq
 
@@ -158,8 +165,7 @@ CONTAINS
 
 
 #ifdef Soilbeta
-   wx   = (wliq_soisno/1000.+wice_soisno/917.)/dz_soisno
-
+   !wx   = (wliq_soisno/1000.+wice_soisno/917.)/dz_soisno
    !fac  = min(1._r8, wx/porsl)
    !fac  = max( fac, 0.01_r8 )
    !! Lee and Pielke 1992 beta, added by K.Sakaguchi
