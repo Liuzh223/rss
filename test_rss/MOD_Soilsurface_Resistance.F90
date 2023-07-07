@@ -140,6 +140,7 @@ CONTAINS
    dsl         = dz_soisno*max(0.001_r8,(0.8*eff_porosity - vol_liq)) &
                / max(0.001_r8,(0.8*porsl- aird))
 
+   !NOTE: 这里0-0.2的范围(包括下面)是引用了那篇文献或来源是哪里？
    dsl         = max(dsl,0._r8)
    dsl         = min(dsl,0.2_r8)
    rss         = dsl/dg + 20._r8
@@ -150,17 +151,18 @@ CONTAINS
    dsl         = dz_soisno*((exp((1._r8 - vol_liq/eff_porosity)**5) - 1._r8)/ (2.71828 - 1._r8))
    dsl         = min(dsl,0.2_r8)
    dsl         = max(dsl,0._r8)
+   !NOTE: dg below is the same as Eq. (9) of SZ09?
    rss         = dsl/dg
 #endif
 
 #ifdef RSS_TR13
    ! calculate dsl by TR13
-   B           = 1000._r8/(qg*forc_rhoair)
-   d1          = (B*vol_liq*dw + eps*dg)/(B*vol_liq+eps)
-   dsl         = dz_soisno*(1._r8/(2._r8*(B*vol_liq+eps)))
+   B           = 1000._r8/(qg*forc_rhoair)                  ! Eq.(12)
+   d1          = (B*vol_liq*dw + eps*dg)/(B*vol_liq+eps)    ! Eq.(9)
+   dsl         = dz_soisno*(1._r8/(2._r8*(B*vol_liq+eps)))  ! Eq.(10)
    dsl         = min(dsl,0.2_r8)
    dsl         = max(dsl,0._r8)
-   rss         = dsl/d1
+   rss         = dsl/d1                                     ! Eq.(10)
 #endif
 
 
@@ -169,6 +171,7 @@ CONTAINS
    !fac  = min(1._r8, wx/porsl)
    !fac  = max( fac, 0.01_r8 )
    !! Lee and Pielke 1992 beta, added by K.Sakaguchi
+   !NOTE: 下面的代码在应用时需要注意冰和field capacity的考虑.
    IF (vol_liq < wfc ) THEN  !when water content of ths top layer is less than that at F.C.
       beta = (1._r8-fsno)*0.25_r8*(1._r8 - cos(vol_liq*3.1415926/wfc))**2._r8
    ELSE   !when water content of ths top layer is more than that at F.C.
